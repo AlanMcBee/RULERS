@@ -11,7 +11,7 @@ module SecEdgar =
     let private httpClient = new HttpClient()
     
     // SEC requires a User-Agent header
-    do httpClient.DefaultRequestHeaders.Add("User-Agent", "RuleOne ETL alan@example.com")
+    do httpClient.DefaultRequestHeaders.Add("User-Agent", "gov.sec.ruleone@codecharm.com")
     
     /// Fetch company submissions metadata from SEC EDGAR API
     let fetchCompanySubmissions (cik: string) : Task<string> =
