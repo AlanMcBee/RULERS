@@ -12,12 +12,12 @@ To run the F# notebook (`FinancialAnalysis.ipynb`), you need one of the followin
 ### Option 2: Jupyter with .NET Interactive
 1. Install [Jupyter](https://jupyter.org/install)
 2. Install [.NET Interactive](https://github.com/dotnet/interactive):
-   ```bash
+   ```powershell
    dotnet tool install -g Microsoft.dotnet-interactive
    dotnet interactive jupyter install
    ```
 3. Launch Jupyter:
-   ```bash
+   ```powershell
    jupyter notebook
    ```
 4. Navigate to `samples/FinancialAnalysis.ipynb`
@@ -25,13 +25,13 @@ To run the F# notebook (`FinancialAnalysis.ipynb`), you need one of the followin
 ## Before Running the Notebook
 
 1. First, fetch some data using the ETL application:
-   ```bash
+   ```powershell
    # Example: Fetch Microsoft 10-K filings
    dotnet run --project src/RuleOne.ETL 0000789019 10-K
    ```
 
 2. Verify data was stored:
-   ```bash
+   ```powershell
    dotnet run --project src/RuleOne.ETL query 0000789019
    ```
 

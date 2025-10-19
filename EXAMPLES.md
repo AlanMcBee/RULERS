@@ -7,29 +7,29 @@ This document provides practical examples of using the RuleOne toolkit for finan
 ### 1. Fetch Company Data
 
 Fetch Microsoft's 10-K filings:
-```bash
+```powershell
 dotnet run --project src/RuleOne.ETL 0000789019 10-K
 ```
 
 Fetch quarterly (10-Q) filings:
-```bash
+```powershell
 dotnet run --project src/RuleOne.ETL 0000789019 10-Q
 ```
 
 ### 2. Query the Database
 
 View all facts for Microsoft:
-```bash
+```powershell
 dotnet run --project src/RuleOne.ETL query 0000789019
 ```
 
 Search for revenue data across all companies:
-```bash
+```powershell
 dotnet run --project src/RuleOne.ETL concept Revenues
 ```
 
 Search for earnings data:
-```bash
+```powershell
 dotnet run --project src/RuleOne.ETL concept NetIncome
 ```
 
@@ -163,25 +163,23 @@ for fact in revenueFacts do
 
 Here's a complete workflow for analyzing a company using Rule #1 principles:
 
-```bash
-#!/bin/bash
-
+```powershell
 # 1. Fetch the data
-echo "Fetching data for Apple (CIK: 0000320193)..."
+Write-Host "Fetching data for Apple (CIK: 0000320193)..."
 dotnet run --project src/RuleOne.ETL 0000320193 10-K
 
 # 2. Query key metrics
-echo "Querying revenues..."
-dotnet run --project src/RuleOne.ETL concept Revenues | grep 0000320193
+Write-Host "Querying revenues..."
+dotnet run --project src/RuleOne.ETL concept Revenues | Select-String "0000320193"
 
-echo "Querying earnings..."
-dotnet run --project src/RuleOne.ETL concept NetIncome | grep 0000320193
+Write-Host "Querying earnings..."
+dotnet run --project src/RuleOne.ETL concept NetIncome | Select-String "0000320193"
 
-echo "Querying equity..."
-dotnet run --project src/RuleOne.ETL concept StockholdersEquity | grep 0000320193
+Write-Host "Querying equity..."
+dotnet run --project src/RuleOne.ETL concept StockholdersEquity | Select-String "0000320193"
 
 # 3. Analyze in notebook
-echo "Open samples/FinancialAnalysis.ipynb to visualize trends"
+Write-Host "Open samples/FinancialAnalysis.ipynb to visualize trends"
 ```
 
 ### The Big Four Numbers
@@ -242,7 +240,7 @@ else
 
 For advanced users, you can query the database directly:
 
-```bash
+```powershell
 # Get revenue trends
 sqlite3 ruleone.db "SELECT FilingDate, Value FROM Facts WHERE CIK='0000789019' AND Concept LIKE '%Revenue%' ORDER BY FilingDate;"
 
@@ -257,8 +255,8 @@ sqlite3 ruleone.db "SELECT CompanyName, COUNT(*) as FilingCount FROM Facts GROUP
 
 Export data to CSV for analysis in Excel or other tools:
 
-```bash
-sqlite3 -header -csv ruleone.db "SELECT * FROM Facts WHERE CIK='0000789019';" > microsoft_data.csv
+```powershell
+sqlite3 -header -csv ruleone.db "SELECT * FROM Facts WHERE CIK='0000789019';" | Out-File -FilePath microsoft_data.csv -Encoding UTF8
 ```
 
 ## Tips and Best Practices
@@ -273,27 +271,27 @@ sqlite3 -header -csv ruleone.db "SELECT * FROM Facts WHERE CIK='0000789019';" > 
 
 Quick reference for popular companies:
 
-```bash
+```powershell
 # Tech Giants
-Microsoft: 0000789019
-Apple: 0000320193
-Amazon: 0001018724
-Alphabet: 0001652044
-Meta: 0001326801
+# Microsoft: 0000789019
+# Apple: 0000320193
+# Amazon: 0001018724
+# Alphabet: 0001652044
+# Meta: 0001326801
 
 # Traditional Companies
-Walmart: 0000104169
-JPMorgan: 0000019617
-Johnson & Johnson: 0000200406
-Visa: 0001403161
-Procter & Gamble: 0000080424
+# Walmart: 0000104169
+# JPMorgan: 0000019617
+# Johnson & Johnson: 0000200406
+# Visa: 0001403161
+# Procter & Gamble: 0000080424
 
 # Growth Companies
-Tesla: 0001318605
-Netflix: 0001065280
-NVIDIA: 0001045810
-Adobe: 0000796343
-Salesforce: 0001108524
+# Tesla: 0001318605
+# Netflix: 0001065280
+# NVIDIA: 0001045810
+# Adobe: 0000796343
+# Salesforce: 0001108524
 ```
 
 ## Troubleshooting

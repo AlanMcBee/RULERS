@@ -61,10 +61,10 @@ RULERS/
 
 ### Building the Solution
 
-```bash
+```powershell
 # Clone the repository
 git clone https://github.com/AlanMcBee/RULERS.git
-cd RULERS
+Set-Location RULERS
 
 # Restore dependencies
 dotnet restore
@@ -82,7 +82,7 @@ dotnet test
 
 Fetch and store SEC filings for a company by CIK:
 
-```bash
+```powershell
 # Fetch Microsoft (CIK: 0000789019) 10-K filings
 dotnet run --project src/RuleOne.ETL 0000789019 10-K
 
@@ -94,7 +94,7 @@ dotnet run --project src/RuleOne.ETL 0000789019 10-Q
 
 Query stored facts from the database:
 
-```bash
+```powershell
 # Query all facts for a specific CIK
 dotnet run --project src/RuleOne.ETL query 0000789019
 
@@ -162,7 +162,7 @@ Indexes are created on CIK, Concept, and FilingDate for efficient queries.
 
 ### Running Tests
 
-```bash
+```powershell
 # Run all tests
 dotnet test
 
@@ -185,7 +185,7 @@ GitHub Actions automatically builds and tests the solution on push and pull requ
 
 ### Example Workflow
 
-```bash
+```powershell
 # 1. Fetch Apple's 10-K filings
 dotnet run --project src/RuleOne.ETL 0000320193 10-K
 
