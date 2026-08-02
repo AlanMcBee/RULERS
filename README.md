@@ -48,10 +48,26 @@ RULERS/
 ├── .github/
 │   └── workflows/
 │       └── dotnet.yml         # CI/CD workflow
+├── docs/                      # Project documentation system
+│   ├── progress/              # Roadmaps and implementation logs
+│   ├── adr/                   # Architecture Decision Records
+│   ├── architecture/          # Architecture descriptions
+│   └── usage/                 # Runbooks and usage guides
 ├── RuleOne.sln                # Solution file
 ├── LICENSE                    # MIT License
 └── README.md                  # This file
 ```
+
+## Documentation
+
+The repository documentation system is under `docs/`:
+
+- `docs/progress/` for active plans and work logs
+- `docs/adr/` for Architecture Decision Records (ADRs)
+- `docs/architecture/` for technical architecture descriptions
+- `docs/usage/` for operator and analyst runbooks
+
+Start with `docs/README.md` and `docs/progress/PLAN_ENGINE_REBOOT.md`.
 
 ## Getting Started
 
