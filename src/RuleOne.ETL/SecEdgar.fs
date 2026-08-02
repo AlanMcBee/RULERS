@@ -255,6 +255,41 @@ module SecEdgar =
                 printfn "Could not parse concept filter file '%s': %s. Falling back to default concept filter." path ex.Message
                 defaultConceptFilter
     
+    let parseTickerLookupJson (json: string) (ticker: string) : string option =
+        try
+            use document = JsonDocument.Parse(json)
+            let normalizedTicker = ticker.ToUpperInvariant()
+
+            if document.RootElement.ValueKind = JsonValueKind.Object then
+                let mutable foundCik = None
+
+                for property in document.RootElement.EnumerateObject() do
+                    if foundCik.IsNone && property.Value.ValueKind = JsonValueKind.Object then
+                        let mutable cik = Unchecked.defaultof<JsonElement>
+                        let mutable tickerValue = Unchecked.defaultof<JsonElement>
+
+                        if property.Value.TryGetProperty("cik_str", &cik)
+                           && property.Value.TryGetProperty("ticker", &tickerValue) then
+                            let candidateTicker =
+                                match tickerValue.ValueKind with
+                                | JsonValueKind.String -> tickerValue.GetString()
+                                | _ -> null
+
+                            if String.Equals(candidateTicker, normalizedTicker, StringComparison.OrdinalIgnoreCase) then
+                                match cik.ValueKind with
+                                | JsonValueKind.Number ->
+                                    let preciseCik = cik.GetInt64()
+                                    foundCik <- Some (preciseCik.ToString("D10"))
+                                | _ -> ()
+
+                foundCik
+            else
+                None
+        with
+        | ex ->
+            printfn "Error parsing ticker lookup JSON: %s" ex.Message
+            None
+
     /// Parse SEC companyfacts JSON into normalized facts and filter by form type.
     let parseCompanyFactsByFormType (json: string) (formType: string) (conceptFilter: ConceptFilter) : SecFact list =
         try

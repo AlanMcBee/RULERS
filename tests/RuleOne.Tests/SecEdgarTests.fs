@@ -117,3 +117,15 @@ let ``calculateRetryDelayMs honors Retry-After header`` () =
     response.Headers.RetryAfter <- new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(3.0))
     let delay = calculateRetryDelayMs 1 (Some response)
     Assert.Equal(3000, delay)
+
+[<Fact>]
+let ``parseTickerLookupJson resolves ticker to CIK`` () =
+    let payload = """
+    {
+      "0": { "cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc." },
+      "1": { "cik_str": 789019, "ticker": "MSFT", "title": "Microsoft Corp" }
+    }
+    """
+
+    let result = parseTickerLookupJson payload "AAPL"
+    Assert.Equal(Some "0000320193", result)
