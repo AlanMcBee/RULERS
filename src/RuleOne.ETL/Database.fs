@@ -5,6 +5,15 @@ open Microsoft.Data.Sqlite
 
 /// SQLite database operations for storing SEC EDGAR XBRL facts
 module Database =
+
+    let private addColumnIfMissing (connection: SqliteConnection) (columnDdl: string) =
+        try
+            let command = connection.CreateCommand()
+            command.CommandText <- columnDdl
+            command.ExecuteNonQuery() |> ignore
+        with
+        | :? SqliteException as ex when ex.SqliteErrorCode = 1 && ex.Message.Contains("duplicate column name") ->
+            ()
     
     /// Initialize the database schema
     let initializeDatabase (connectionString: string) =
@@ -24,6 +33,9 @@ module Database =
                 Unit TEXT,
                 ContextRef TEXT,
                 Period TEXT,
+                AccessionNumber TEXT,
+                FiscalYear TEXT,
+                FiscalPeriod TEXT,
                 CreatedAt TEXT DEFAULT CURRENT_TIMESTAMP
             );
             
@@ -32,20 +44,27 @@ module Database =
             CREATE INDEX IF NOT EXISTS idx_filing_date ON Facts(FilingDate);
         """
         createTableCommand.ExecuteNonQuery() |> ignore
+
+        // Lightweight schema evolution for existing local databases.
+        addColumnIfMissing connection "ALTER TABLE Facts ADD COLUMN AccessionNumber TEXT"
+        addColumnIfMissing connection "ALTER TABLE Facts ADD COLUMN FiscalYear TEXT"
+        addColumnIfMissing connection "ALTER TABLE Facts ADD COLUMN FiscalPeriod TEXT"
+
         connection.Close()
     
     /// Insert a fact into the database
     let insertFact (connectionString: string) (cik: string) (companyName: string option) 
                    (filingDate: string option) (formType: string option) (concept: string) 
                    (value: string option) (unit: string option) (contextRef: string option) 
-                   (period: string option) =
+                   (period: string option) (accessionNumber: string option)
+                   (fiscalYear: string option) (fiscalPeriod: string option) =
         use connection = new SqliteConnection(connectionString)
         connection.Open()
         
         let insertCommand = connection.CreateCommand()
         insertCommand.CommandText <- """
-            INSERT INTO Facts (CIK, CompanyName, FilingDate, FormType, Concept, Value, Unit, ContextRef, Period)
-            VALUES (@cik, @companyName, @filingDate, @formType, @concept, @value, @unit, @contextRef, @period)
+            INSERT INTO Facts (CIK, CompanyName, FilingDate, FormType, Concept, Value, Unit, ContextRef, Period, AccessionNumber, FiscalYear, FiscalPeriod)
+            VALUES (@cik, @companyName, @filingDate, @formType, @concept, @value, @unit, @contextRef, @period, @accessionNumber, @fiscalYear, @fiscalPeriod)
         """
         
         let addParam name value =
@@ -62,6 +81,9 @@ module Database =
         addParam "@unit" unit
         addParam "@contextRef" contextRef
         addParam "@period" period
+        addParam "@accessionNumber" accessionNumber
+        addParam "@fiscalYear" fiscalYear
+        addParam "@fiscalPeriod" fiscalPeriod
         
         insertCommand.ExecuteNonQuery() |> ignore
         connection.Close()

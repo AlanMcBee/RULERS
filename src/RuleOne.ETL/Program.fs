@@ -24,43 +24,135 @@ let main argv =
     | [| cik; formType |] when formType = "10-K" || formType = "10-Q" ->
         printfn "Fetching %s filings for CIK: %s" formType cik
         printfn ""
-        
+
         try
-            // Fetch company submissions
+            let conceptFilter = loadConceptFilter None
+
+            // Fetch metadata and company facts once, then parse locally.
             let submissionsTask = fetchCompanySubmissions cik
-            let json = submissionsTask.Result
-            
-            let companyName = parseCompanyName json
+            let submissionsJson = submissionsTask.Result
+
+            let companyFactsTask = fetchCompanyFacts cik
+            let companyFactsJson = companyFactsTask.Result
+
+            let companyName =
+                parseCompanyFactsCompanyName companyFactsJson
+                |> Option.orElse (parseCompanyName submissionsJson)
+
             match companyName with
             | Some name -> printfn "Company: %s" name
             | None -> printfn "Company name not found"
-            
-            printfn "Fetching %s filings..." formType
-            
-            // Fetch and parse filings
-            let filingsTask = fetchAndParseFiling cik formType
-            let filings = filingsTask.Result
-            
-            printfn "Found %d filings" (List.length filings)
-            
-            // Store facts in database
+
+            printfn "Parsing %s facts from SEC companyfacts endpoint..." formType
+            let facts = parseCompanyFactsByFormType companyFactsJson formType conceptFilter
+
+            let filingCount =
+                facts
+                |> List.choose (fun fact -> fact.AccessionNumber)
+                |> Set.ofList
+                |> Set.count
+
+            printfn "Found %d facts across %d filings" (List.length facts) filingCount
+
+            // Store facts in database.
             let mutable totalFacts = 0
-            for (accession, facts) in filings do
-                printfn "Processing filing: %s" accession
-                for (concept, value, unit, period) in facts do
-                    insertFact connectionString cik companyName None (Some formType) concept value unit None period
-                    totalFacts <- totalFacts + 1
-            
+            for fact in facts do
+                insertFact
+                    connectionString
+                    cik
+                    companyName
+                    fact.FilingDate
+                    fact.FormType
+                    fact.Concept
+                    fact.Value
+                    fact.Unit
+                    None
+                    fact.Period
+                    fact.AccessionNumber
+                    fact.FiscalYear
+                    fact.FiscalPeriod
+
+                totalFacts <- totalFacts + 1
+
             printfn ""
             printfn "Successfully stored %d facts in database" totalFacts
-            
-            // Query and display sample data
+
+            // Query and display sample data.
             printfn ""
             printfn "Sample data from database:"
             let sampleFacts = queryFactsByCIK connectionString cik |> List.truncate 5
             for fact in sampleFacts do
                 printfn "  %s: %s %s" fact.Concept (Option.defaultValue "N/A" fact.Value) (Option.defaultValue "" fact.Unit)
-            
+
+            0 // Success
+        with
+        | ex ->
+            printfn "Error: %s" ex.Message
+            1 // Error
+
+    | [| cik; formType; "--concept-filter"; conceptFilterPath |] when formType = "10-K" || formType = "10-Q" ->
+        printfn "Fetching %s filings for CIK: %s" formType cik
+        printfn ""
+
+        try
+            let conceptFilter = loadConceptFilter (Some conceptFilterPath)
+
+            // Fetch metadata and company facts once, then parse locally.
+            let submissionsTask = fetchCompanySubmissions cik
+            let submissionsJson = submissionsTask.Result
+
+            let companyFactsTask = fetchCompanyFacts cik
+            let companyFactsJson = companyFactsTask.Result
+
+            let companyName =
+                parseCompanyFactsCompanyName companyFactsJson
+                |> Option.orElse (parseCompanyName submissionsJson)
+
+            match companyName with
+            | Some name -> printfn "Company: %s" name
+            | None -> printfn "Company name not found"
+
+            printfn "Parsing %s facts from SEC companyfacts endpoint with filter: %s" formType conceptFilterPath
+            let facts = parseCompanyFactsByFormType companyFactsJson formType conceptFilter
+
+            let filingCount =
+                facts
+                |> List.choose (fun fact -> fact.AccessionNumber)
+                |> Set.ofList
+                |> Set.count
+
+            printfn "Found %d facts across %d filings" (List.length facts) filingCount
+
+            // Store facts in database.
+            let mutable totalFacts = 0
+            for fact in facts do
+                insertFact
+                    connectionString
+                    cik
+                    companyName
+                    fact.FilingDate
+                    fact.FormType
+                    fact.Concept
+                    fact.Value
+                    fact.Unit
+                    None
+                    fact.Period
+                    fact.AccessionNumber
+                    fact.FiscalYear
+                    fact.FiscalPeriod
+
+                totalFacts <- totalFacts + 1
+
+            printfn ""
+            printfn "Successfully stored %d facts in database" totalFacts
+
+            // Query and display sample data.
+            printfn ""
+            printfn "Sample data from database:"
+            let sampleFacts = queryFactsByCIK connectionString cik |> List.truncate 5
+            for fact in sampleFacts do
+                printfn "  %s: %s %s" fact.Concept (Option.defaultValue "N/A" fact.Value) (Option.defaultValue "" fact.Unit)
+
             0 // Success
         with
         | ex ->
@@ -103,12 +195,14 @@ let main argv =
     
     | _ ->
         printfn "Usage:"
-        printfn "  dotnet run <CIK> <10-K|10-Q>    - Fetch and store SEC filings"
-        printfn "  dotnet run query <CIK>           - Query facts by CIK"
-        printfn "  dotnet run concept <CONCEPT>     - Query facts by concept name"
+        printfn "  dotnet run <CIK> <10-K|10-Q>                              - Fetch and store SEC filings"
+        printfn "  dotnet run <CIK> <10-K|10-Q> --concept-filter <path>      - Fetch with concept allow/deny JSON"
+        printfn "  dotnet run query <CIK>                                     - Query facts by CIK"
+        printfn "  dotnet run concept <CONCEPT>                               - Query facts by concept name"
         printfn ""
         printfn "Examples:"
-        printfn "  dotnet run 0000789019 10-K       - Fetch Microsoft 10-K filings"
-        printfn "  dotnet run query 0000789019      - Query Microsoft facts"
-        printfn "  dotnet run concept Revenues      - Query all revenue facts"
+        printfn "  dotnet run 0000789019 10-K                             - Fetch Microsoft 10-K filings"
+        printfn "  dotnet run 0000789019 10-K --concept-filter .\\concepts.json"
+        printfn "  dotnet run query 0000789019                            - Query Microsoft facts"
+        printfn "  dotnet run concept Revenues                            - Query all revenue facts"
         1 // Error

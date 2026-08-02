@@ -104,6 +104,9 @@ dotnet run --project src/RuleOne.ETL 0000789019 10-K
 
 # Fetch 10-Q filings
 dotnet run --project src/RuleOne.ETL 0000789019 10-Q
+
+# Fetch with concept filter override
+dotnet run --project src/RuleOne.ETL 0000789019 10-K --concept-filter .\concept-filter.json
 ```
 
 ### Querying Data

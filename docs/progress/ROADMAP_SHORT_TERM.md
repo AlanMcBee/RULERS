@@ -12,9 +12,9 @@ Scope: 1-2 week execution horizon, optimized for single-analyst productivity whi
 ## Milestones
 
 - [ ] M0: Baseline and constraints captured in docs.
-- [ ] M1: Real parser path in ETL (no mock fact generation).
-- [ ] M2: Concept selection policy configurable via JSON.
-- [ ] M3: Idempotent persistence and provenance fields in storage.
+- [x] M1: Real parser path in ETL (no mock fact generation).
+- [x] M2: Concept selection policy configurable via JSON.
+- [x] M3: Idempotent persistence and provenance fields in storage.
 - [ ] M4: Robust SEC fetch retries/backoff/rate compliance.
 - [ ] M5: Analytics parameter precedence model defined (global/sector/industry/company).
 - [ ] M6: JSON run spec shape defined for deterministic screening runs.
