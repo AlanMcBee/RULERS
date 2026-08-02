@@ -5,6 +5,7 @@ open System.Globalization
 open System.IO
 open System.Net
 open System.Net.Http
+open System.Net.Http.Headers
 open System.Text.Json
 open System.Text.RegularExpressions
 open System.Threading.Tasks
@@ -29,10 +30,12 @@ module SecEdgar =
         FiscalPeriod: string option
     }
     
-    let private httpClient = new HttpClient()
-    
-    // SEC requires a User-Agent header
-    do httpClient.DefaultRequestHeaders.Add("User-Agent", "gov.sec.ruleone@codecharm.com")
+    let private httpClient =
+        lazy
+            let client = new HttpClient()
+            // SEC requires a User-Agent header; use the supported API to avoid init-time header issues.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("RuleOne/1.0 (+https://github.com/AlanMcBee/RULERS)")
+            client
 
     let shouldRetryStatusCode (statusCode: HttpStatusCode) =
         statusCode = HttpStatusCode.TooManyRequests
@@ -53,7 +56,7 @@ module SecEdgar =
     let private sendWithRetry (requestUri: Uri) =
         let rec loop attempt =
             task {
-                let! response = httpClient.GetAsync(requestUri)
+                let! response = httpClient.Value.GetAsync(requestUri)
                 if response.IsSuccessStatusCode then
                     let! content = response.Content.ReadAsStringAsync()
                     return content, response
@@ -101,6 +104,15 @@ module SecEdgar =
         Deny = Set.empty
     }
     
+    /// Fetch ticker lookup data from SEC company tickers feed.
+    let fetchTickerLookup () : Task<string> =
+        let url = "https://www.sec.gov/files/company_tickers.json"
+
+        task {
+            let! content, _ = sendWithRetry (Uri(url))
+            return content
+        }
+
     /// Fetch company submissions metadata from SEC EDGAR API
     let fetchCompanySubmissions (cik: string) : Task<string> =
         // Pad CIK to 10 digits
@@ -280,6 +292,9 @@ module SecEdgar =
                                 | JsonValueKind.Number ->
                                     let preciseCik = cik.GetInt64()
                                     foundCik <- Some (preciseCik.ToString("D10"))
+                                | JsonValueKind.String ->
+                                    let parsed = Int64.Parse(cik.GetString())
+                                    foundCik <- Some (parsed.ToString("D10"))
                                 | _ -> ()
 
                 foundCik

@@ -164,7 +164,7 @@ let main argv =
         printfn ""
 
         try
-            let tickerJson = fetchCompanySubmissions ticker |> Async.AwaitTask |> Async.RunSynchronously
+            let tickerJson = fetchTickerLookup () |> Async.AwaitTask |> Async.RunSynchronously
             let resolvedCik = parseTickerLookupJson tickerJson ticker
 
             match resolvedCik with
@@ -174,7 +174,7 @@ let main argv =
             0
         with
         | ex ->
-            printfn "Error: %s" ex.Message
+            printfn "Could not resolve ticker %s from SEC data: %s" ticker ex.Message
             1
 
     | [| "query"; cik |] ->
