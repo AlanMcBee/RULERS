@@ -25,6 +25,14 @@
         "/^powershell -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-Command -Module RuleOne \\| Select-Object Name, CommandType \\| Sort-Object Name \\| Format-Table -AutoSize\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-Command -Module RuleOne \\| Select-Object Name, CommandType \\| Sort-Object Name \\| Format-Table -AutoSize; Get-Command Resolve-R1Ticker \\| Select-Object Name, Source\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-Command -Module RuleOne \\| Select-Object Name, CommandType \\| Sort-Object Name \\| Format-Table -AutoSize\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

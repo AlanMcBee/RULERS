@@ -6,15 +6,16 @@
     CompanyName = 'RuleOne'
     Copyright = '(c) RuleOne. All rights reserved.'
     Description = 'PowerShell wrapper for the RuleOne ETL CLI.'
-    PowerShellVersion = '5.1'
+    PowerShellVersion = '7.4'
+    DefaultCommandPrefix = 'R1'
     FunctionsToExport = @(
-        'Resolve-R1Ticker',
-        'Import-R1Filings',
-        'Get-R1Facts',
-        'Get-R1ConceptFacts',
-        'Get-R1Config',
-        'Set-R1Config',
-        'Get-R1Securities'
+        'Resolve-Ticker',
+        'Import-Filings',
+        'Get-Facts',
+        'Get-ConceptFacts',
+        'Get-Config',
+        'Set-Config',
+        'Get-Securities'
     )
     CmdletsToExport = @()
     VariablesToExport = '*'

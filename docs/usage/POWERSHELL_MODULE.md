@@ -8,6 +8,8 @@ The repository now includes a lightweight PowerShell module for the ETL workflow
 Import-Module .\modules\RuleOne\RuleOne.psd1
 ```
 
+These commands are intended for PowerShell 7+ and will be exposed with the module prefix from the manifest.
+
 ## Example commands
 
 ```powershell
