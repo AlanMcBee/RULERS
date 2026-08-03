@@ -50,6 +50,14 @@
         "/^dotnet build RuleOne\\.sln ; pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Resolve-R1Ticker MSFT \\| ConvertTo-Json -Depth 6\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Set-R1Config -SecContact 'example@example\\.com' \\| ConvertTo-Json -Depth 4; Get-R1Config \\| ConvertTo-Json -Depth 4\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Set-R1Config -DatabasePath 'c:/temp/ruleone\\.db' \\| Out-Null; Set-R1Config -FormType '10-Q' \\| Out-Null; Set-R1Config -SecContact 'ops@example\\.com' \\| Out-Null; Get-R1Config \\| ConvertTo-Json -Depth 4\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

@@ -7,6 +7,7 @@ function Get-Config {
             DatabasePath = Join-Path $script:RepoRoot 'ruleone.db'
             FormType = '10-K'
             ConceptFilterPath = $null
+            SecContact = $null
         }
     }
 
@@ -16,6 +17,7 @@ function Get-Config {
             DatabasePath = $config.DatabasePath
             FormType = $config.FormType
             ConceptFilterPath = $config.ConceptFilterPath
+            SecContact = $config.SecContact
         }
     }
     catch {
@@ -24,6 +26,7 @@ function Get-Config {
             DatabasePath = Join-Path $script:RepoRoot 'ruleone.db'
             FormType = '10-K'
             ConceptFilterPath = $null
+            SecContact = $null
         }
     }
 }
@@ -33,14 +36,18 @@ function Set-Config {
     param(
         [string]$DatabasePath,
         [ValidateSet('10-K', '10-Q')]
-        [string]$FormType = '10-K',
-        [string]$ConceptFilterPath
+        [string]$FormType,
+        [string]$ConceptFilterPath,
+        [string]$SecContact
     )
 
+    $existingConfig = Get-Config
+
     $config = [ordered]@{
-        DatabasePath = $DatabasePath
-        FormType = $FormType
-        ConceptFilterPath = $ConceptFilterPath
+        DatabasePath = if ($PSBoundParameters.ContainsKey('DatabasePath')) { $DatabasePath } else { $existingConfig.DatabasePath }
+        FormType = if ($PSBoundParameters.ContainsKey('FormType')) { $FormType } else { $existingConfig.FormType }
+        ConceptFilterPath = if ($PSBoundParameters.ContainsKey('ConceptFilterPath')) { $ConceptFilterPath } else { $existingConfig.ConceptFilterPath }
+        SecContact = if ($PSBoundParameters.ContainsKey('SecContact')) { $SecContact } else { $existingConfig.SecContact }
     }
 
     $config | ConvertTo-Json | Set-Content -Path $script:DefaultConfigPath -Encoding UTF8
