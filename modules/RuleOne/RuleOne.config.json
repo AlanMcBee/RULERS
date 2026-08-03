@@ -1,6 +1,6 @@
 {
-  "DatabasePath": "c:/temp/ruleone.db",
+  "DatabasePath": "S:\\github.com\\AlanMcBee\\RULERS\\ruleone.db",
   "FormType": "10-Q",
   "ConceptFilterPath": "",
-  "SecContact": "ops@example.com"
+  "SecContact": "Alan McBee gov.sec@codecharm.com"
 }
