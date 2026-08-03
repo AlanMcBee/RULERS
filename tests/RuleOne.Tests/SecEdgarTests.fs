@@ -129,3 +129,25 @@ let ``parseTickerLookupJson resolves ticker to CIK`` () =
 
     let result = parseTickerLookupJson payload "AAPL"
     Assert.Equal(Some "0000320193", result)
+
+[<Fact>]
+let ``parseTickerLookupJson returns None when ticker is not found`` () =
+    let payload = """
+    {
+      "0": { "cik_str": 320193, "ticker": "AAPL", "title": "Apple Inc." }
+    }
+    """
+
+    let result = parseTickerLookupJson payload "ZZZZ"
+    Assert.Equal(None, result)
+
+[<Fact>]
+let ``parseCompanyName returns name from submissions JSON`` () =
+    let payload = """{ "cik": 789019, "name": "Microsoft Corporation" }"""
+    let result = parseCompanyName payload
+    Assert.Equal(Some "Microsoft Corporation", result)
+
+[<Fact>]
+let ``parseCompanyName returns None for malformed JSON`` () =
+    let result = parseCompanyName "not json"
+    Assert.Equal(None, result)

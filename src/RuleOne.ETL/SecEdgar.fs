@@ -39,7 +39,9 @@ module SecEdgar =
 
     let private httpClient =
         lazy
-            let client = new HttpClient()
+            let handler = new HttpClientHandler()
+            handler.AutomaticDecompression <- DecompressionMethods.GZip ||| DecompressionMethods.Deflate
+            let client = new HttpClient(handler)
             let contact = getConfiguredContact ()
             client.DefaultRequestHeaders.UserAgent.Clear()
             client.DefaultRequestHeaders.UserAgent.ParseAdd($"RuleOne/1.0 (+{contact})")
@@ -48,13 +50,7 @@ module SecEdgar =
             client.DefaultRequestHeaders.AcceptEncoding.Clear()
             client.DefaultRequestHeaders.AcceptEncoding.Add(StringWithQualityHeaderValue("gzip"))
             client.DefaultRequestHeaders.AcceptEncoding.Add(StringWithQualityHeaderValue("deflate"))
-            client.DefaultRequestHeaders.Add("Accept-Encoding", "br")
-            client.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "empty")
-            client.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "cors")
-            client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "same-origin")
-            client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest")
             client.DefaultRequestHeaders.Add("Contact", contact)
-            client.DefaultRequestHeaders.Add("Origin", "https://www.sec.gov")
             client
 
     let shouldRetryStatusCode (statusCode: HttpStatusCode) =
@@ -73,9 +69,10 @@ module SecEdgar =
             let cappedDelay = min 8000 (baseDelayMs * (pown 2 attempt))
             cappedDelay
 
+    // 403 is not included: SEC/Akamai returns it for bot-detection blocks, not
+    // transient rate limiting, so retrying it is pointless and can worsen blocking.
     let private shouldThrottle (statusCode: HttpStatusCode) =
         statusCode = HttpStatusCode.TooManyRequests
-        || statusCode = HttpStatusCode.Forbidden
 
     let private sendWithRetry (requestUri: Uri) =
         let rec loop attempt =

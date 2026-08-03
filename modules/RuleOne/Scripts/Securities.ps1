@@ -1,3 +1,9 @@
+<#
+.SYNOPSIS
+    Lists securities currently stored in the database.
+.EXAMPLE
+    Get-R1Securities
+#>
 function Get-Securities {
     [CmdletBinding()]
     param(
@@ -7,12 +13,7 @@ function Get-Securities {
     $config = Get-Config
     $effectiveDatabasePath = if ($DatabasePath) { $DatabasePath } else { $config.DatabasePath }
 
-    $output = & dotnet run --project $script:EtlProjectPath list 2>&1
-    $text = ($output | Out-String).Trim()
-
-    if ($LASTEXITCODE -ne 0) {
-        throw $text
-    }
+    $text = Invoke-EtlCommand -Arguments @('list')
 
     $rows = @()
     foreach ($line in $text -split "`r?`n") {

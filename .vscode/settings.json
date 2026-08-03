@@ -1,15 +1,15 @@
 {
     "chat.tools.terminal.autoApprove": {
         "dotnet test": true,
-        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; powershell -NoLogo -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1; Resolve-RuleOneTicker -Ticker AAPL \\| Format-List \\*\"$/": {
+        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; powershell -NoLogo -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1; Resolve-R1Ticker -Ticker AAPL \\| Format-List \\*\"$/": {
             "approve": true,
             "matchCommandLine": true
         },
-        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; pwsh -NoLogo -NoProfile -Command \"\\$PSVersionTable\\.PSVersion\\.ToString\\(\\); Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1; Resolve-RuleOneTicker -Ticker AAPL \\| Format-List \\*\"$/": {
+        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; pwsh -NoLogo -NoProfile -Command \"\\$PSVersionTable\\.PSVersion\\.ToString\\(\\); Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1; Resolve-R1Ticker -Ticker AAPL \\| Format-List \\*\"$/": {
             "approve": true,
             "matchCommandLine": true
         },
-        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; pwsh -NoLogo -NoProfile -Command \"Import-Module \\./modules/RuleOne/RuleOne\\.psd1; Resolve-RuleOneTicker -Ticker AAPL \\| Format-List \\*\"$/": {
+        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; pwsh -NoLogo -NoProfile -Command \"Import-Module \\./modules/RuleOne/RuleOne\\.psd1; Resolve-R1Ticker -Ticker AAPL \\| Format-List \\*\"$/": {
             "approve": true,
             "matchCommandLine": true
         },
@@ -17,7 +17,7 @@
             "approve": true,
             "matchCommandLine": true
         },
-        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; dotnet test RuleOne\\.sln ; pwsh -NoLogo -NoProfile -Command \"Import-Module \\./modules/RuleOne/RuleOne\\.psd1; Resolve-RuleOneTicker -Ticker AAPL \\| Format-List \\*\"$/": {
+        "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; dotnet test RuleOne\\.sln ; pwsh -NoLogo -NoProfile -Command \"Import-Module \\./modules/RuleOne/RuleOne\\.psd1; Resolve-R1Ticker -Ticker AAPL \\| Format-List \\*\"$/": {
             "approve": true,
             "matchCommandLine": true
         },
@@ -58,6 +58,28 @@
         "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Set-R1Config -DatabasePath 'c:/temp/ruleone\\.db' \\| Out-Null; Set-R1Config -FormType '10-Q' \\| Out-Null; Set-R1Config -SecContact 'ops@example\\.com' \\| Out-Null; Get-R1Config \\| ConvertTo-Json -Depth 4\"$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-Command -Module RuleOne \\| Select-Object Name; Get-R1Config \\| ConvertTo-Json\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Resolve-R1Ticker -Ticker MSFT \\| ConvertTo-Json\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; & \\(Get-Module RuleOne\\) \\{ Invoke-EtlCommand -Arguments @\\('lookup','MSFT'\\) \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-R1Securities \\| Format-Table; Import-R1Filings -CIK 0000789019 -FormType 10-K \\| Select-Object CIK,FormType,DatabasePath\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-R1Securities \\| Format-Table\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "ConvertFrom-Json": true,
+        "Out-Null": true
     }
 }

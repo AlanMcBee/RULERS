@@ -9,7 +9,7 @@ RuleOne is a .NET/F# financial analysis engine for long-horizon Rule #1 style sc
 1. Ingestion (`RuleOne.ETL`)
 - Retrieves SEC submission metadata.
 - Discovers filing candidates.
-- Parses financial facts (currently partial and under active implementation).
+- Parses financial facts from SEC `companyfacts` JSON (see ADR-0002).
 - Persists normalized facts to SQLite.
 
 2. Analytics (`RuleOne.Analytics`)
@@ -39,6 +39,5 @@ RuleOne is a .NET/F# financial analysis engine for long-horizon Rule #1 style sc
 
 ## Active Risks
 
-1. Placeholder parsing path is still present and must be replaced.
-2. Analytics need richer long-horizon stability metrics.
-3. Storage shape must evolve for scalable universe-wide screening.
+1. Analytics need richer long-horizon stability metrics.
+2. Storage shape must evolve for scalable universe-wide screening.

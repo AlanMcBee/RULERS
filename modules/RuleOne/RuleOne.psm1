@@ -6,6 +6,7 @@ $script:EtlProjectPath = Join-Path $script:RepoRoot 'src/RuleOne.ETL'
 $script:DefaultConfigPath = Join-Path $script:ModuleRoot 'RuleOne.config.json'
 
 $scriptFiles = @(
+    'Invoke.ps1',
     'Config.ps1',
     'Ticker.ps1',
     'Filings.ps1',

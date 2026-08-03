@@ -3,6 +3,80 @@ open System.IO
 open RuleOne.ETL.Database
 open RuleOne.ETL.SecEdgar
 
+/// Fetches submissions + company facts for a CIK, stores matching facts, and prints a sample.
+/// Shared by the plain fetch command and the --concept-filter variant.
+let private runFetchAndStore (connectionString: string) (cik: string) (formType: string) (conceptFilterPath: string option) =
+    printfn "Fetching %s filings for CIK: %s" formType cik
+    printfn ""
+
+    try
+        let conceptFilter = loadConceptFilter conceptFilterPath
+
+        // Fetch metadata and company facts once, then parse locally.
+        let submissionsTask = fetchCompanySubmissions cik
+        let submissionsJson = submissionsTask.Result
+
+        let companyFactsTask = fetchCompanyFacts cik
+        let companyFactsJson = companyFactsTask.Result
+
+        let companyName =
+            parseCompanyFactsCompanyName companyFactsJson
+            |> Option.orElse (parseCompanyName submissionsJson)
+
+        match companyName with
+        | Some name -> printfn "Company: %s" name
+        | None -> printfn "Company name not found"
+
+        match conceptFilterPath with
+        | Some path -> printfn "Parsing %s facts from SEC companyfacts endpoint with filter: %s" formType path
+        | None -> printfn "Parsing %s facts from SEC companyfacts endpoint..." formType
+
+        let facts = parseCompanyFactsByFormType companyFactsJson formType conceptFilter
+
+        let filingCount =
+            facts
+            |> List.choose (fun fact -> fact.AccessionNumber)
+            |> Set.ofList
+            |> Set.count
+
+        printfn "Found %d facts across %d filings" (List.length facts) filingCount
+
+        // Store facts in database.
+        let mutable totalFacts = 0
+        for fact in facts do
+            insertFact
+                connectionString
+                cik
+                companyName
+                fact.FilingDate
+                fact.FormType
+                fact.Concept
+                fact.Value
+                fact.Unit
+                None
+                fact.Period
+                fact.AccessionNumber
+                fact.FiscalYear
+                fact.FiscalPeriod
+
+            totalFacts <- totalFacts + 1
+
+        printfn ""
+        printfn "Successfully stored %d facts in database" totalFacts
+
+        // Query and display sample data.
+        printfn ""
+        printfn "Sample data from database:"
+        let sampleFacts = queryFactsByCIK connectionString cik |> List.truncate 5
+        for fact in sampleFacts do
+            printfn "  %s: %s %s" fact.Concept (Option.defaultValue "N/A" fact.Value) (Option.defaultValue "" fact.Unit)
+
+        0 // Success
+    with
+    | ex ->
+        printfn "Error: %s" ex.Message
+        1 // Error
+
 /// Main ETL application for fetching SEC EDGAR data
 [<EntryPoint>]
 let main argv =
@@ -22,142 +96,10 @@ let main argv =
     // Parse command line arguments
     match argv with
     | [| cik; formType |] when formType = "10-K" || formType = "10-Q" ->
-        printfn "Fetching %s filings for CIK: %s" formType cik
-        printfn ""
-
-        try
-            let conceptFilter = loadConceptFilter None
-
-            // Fetch metadata and company facts once, then parse locally.
-            let submissionsTask = fetchCompanySubmissions cik
-            let submissionsJson = submissionsTask.Result
-
-            let companyFactsTask = fetchCompanyFacts cik
-            let companyFactsJson = companyFactsTask.Result
-
-            let companyName =
-                parseCompanyFactsCompanyName companyFactsJson
-                |> Option.orElse (parseCompanyName submissionsJson)
-
-            match companyName with
-            | Some name -> printfn "Company: %s" name
-            | None -> printfn "Company name not found"
-
-            printfn "Parsing %s facts from SEC companyfacts endpoint..." formType
-            let facts = parseCompanyFactsByFormType companyFactsJson formType conceptFilter
-
-            let filingCount =
-                facts
-                |> List.choose (fun fact -> fact.AccessionNumber)
-                |> Set.ofList
-                |> Set.count
-
-            printfn "Found %d facts across %d filings" (List.length facts) filingCount
-
-            // Store facts in database.
-            let mutable totalFacts = 0
-            for fact in facts do
-                insertFact
-                    connectionString
-                    cik
-                    companyName
-                    fact.FilingDate
-                    fact.FormType
-                    fact.Concept
-                    fact.Value
-                    fact.Unit
-                    None
-                    fact.Period
-                    fact.AccessionNumber
-                    fact.FiscalYear
-                    fact.FiscalPeriod
-
-                totalFacts <- totalFacts + 1
-
-            printfn ""
-            printfn "Successfully stored %d facts in database" totalFacts
-
-            // Query and display sample data.
-            printfn ""
-            printfn "Sample data from database:"
-            let sampleFacts = queryFactsByCIK connectionString cik |> List.truncate 5
-            for fact in sampleFacts do
-                printfn "  %s: %s %s" fact.Concept (Option.defaultValue "N/A" fact.Value) (Option.defaultValue "" fact.Unit)
-
-            0 // Success
-        with
-        | ex ->
-            printfn "Error: %s" ex.Message
-            1 // Error
+        runFetchAndStore connectionString cik formType None
 
     | [| cik; formType; "--concept-filter"; conceptFilterPath |] when formType = "10-K" || formType = "10-Q" ->
-        printfn "Fetching %s filings for CIK: %s" formType cik
-        printfn ""
-
-        try
-            let conceptFilter = loadConceptFilter (Some conceptFilterPath)
-
-            // Fetch metadata and company facts once, then parse locally.
-            let submissionsTask = fetchCompanySubmissions cik
-            let submissionsJson = submissionsTask.Result
-
-            let companyFactsTask = fetchCompanyFacts cik
-            let companyFactsJson = companyFactsTask.Result
-
-            let companyName =
-                parseCompanyFactsCompanyName companyFactsJson
-                |> Option.orElse (parseCompanyName submissionsJson)
-
-            match companyName with
-            | Some name -> printfn "Company: %s" name
-            | None -> printfn "Company name not found"
-
-            printfn "Parsing %s facts from SEC companyfacts endpoint with filter: %s" formType conceptFilterPath
-            let facts = parseCompanyFactsByFormType companyFactsJson formType conceptFilter
-
-            let filingCount =
-                facts
-                |> List.choose (fun fact -> fact.AccessionNumber)
-                |> Set.ofList
-                |> Set.count
-
-            printfn "Found %d facts across %d filings" (List.length facts) filingCount
-
-            // Store facts in database.
-            let mutable totalFacts = 0
-            for fact in facts do
-                insertFact
-                    connectionString
-                    cik
-                    companyName
-                    fact.FilingDate
-                    fact.FormType
-                    fact.Concept
-                    fact.Value
-                    fact.Unit
-                    None
-                    fact.Period
-                    fact.AccessionNumber
-                    fact.FiscalYear
-                    fact.FiscalPeriod
-
-                totalFacts <- totalFacts + 1
-
-            printfn ""
-            printfn "Successfully stored %d facts in database" totalFacts
-
-            // Query and display sample data.
-            printfn ""
-            printfn "Sample data from database:"
-            let sampleFacts = queryFactsByCIK connectionString cik |> List.truncate 5
-            for fact in sampleFacts do
-                printfn "  %s: %s %s" fact.Concept (Option.defaultValue "N/A" fact.Value) (Option.defaultValue "" fact.Unit)
-
-            0 // Success
-        with
-        | ex ->
-            printfn "Error: %s" ex.Message
-            1 // Error
+        runFetchAndStore connectionString cik formType (Some conceptFilterPath)
     
     | [| "lookup"; ticker |] ->
         printfn "Looking up CIK for ticker: %s" ticker

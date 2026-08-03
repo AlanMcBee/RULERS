@@ -1,3 +1,9 @@
+<#
+.SYNOPSIS
+    Queries stored SEC facts for a company by CIK.
+.EXAMPLE
+    Get-R1Facts -CIK 0000789019
+#>
 function Get-Facts {
     [CmdletBinding()]
     param(
@@ -9,12 +15,7 @@ function Get-Facts {
     $config = Get-Config
     $effectiveDatabasePath = if ($DatabasePath) { $DatabasePath } else { $config.DatabasePath }
 
-    $output = & dotnet run --project $script:EtlProjectPath query $CIK 2>&1
-    $text = ($output | Out-String).Trim()
-
-    if ($LASTEXITCODE -ne 0) {
-        throw $text
-    }
+    $text = Invoke-EtlCommand -Arguments @('query', $CIK)
 
     return [pscustomobject]@{
         CIK = $CIK
@@ -23,6 +24,12 @@ function Get-Facts {
     }
 }
 
+<#
+.SYNOPSIS
+    Queries stored SEC facts across companies by concept name.
+.EXAMPLE
+    Get-R1ConceptFacts -Concept Revenues
+#>
 function Get-ConceptFacts {
     [CmdletBinding()]
     param(
@@ -34,12 +41,7 @@ function Get-ConceptFacts {
     $config = Get-Config
     $effectiveDatabasePath = if ($DatabasePath) { $DatabasePath } else { $config.DatabasePath }
 
-    $output = & dotnet run --project $script:EtlProjectPath concept $Concept 2>&1
-    $text = ($output | Out-String).Trim()
-
-    if ($LASTEXITCODE -ne 0) {
-        throw $text
-    }
+    $text = Invoke-EtlCommand -Arguments @('concept', $Concept)
 
     return [pscustomobject]@{
         Concept = $Concept

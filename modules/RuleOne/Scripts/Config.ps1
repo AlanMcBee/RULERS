@@ -1,3 +1,12 @@
+<#
+.SYNOPSIS
+    Gets the current RuleOne module configuration.
+.DESCRIPTION
+    Reads persisted settings (DatabasePath, ConceptFilterPath, SecContact) from
+    RuleOne.config.json, falling back to defaults if the file is missing or invalid.
+.EXAMPLE
+    Get-R1Config
+#>
 function Get-Config {
     [CmdletBinding()]
     param()
@@ -5,7 +14,6 @@ function Get-Config {
     if (-not (Test-Path $script:DefaultConfigPath)) {
         return [pscustomobject]@{
             DatabasePath = Join-Path $script:RepoRoot 'ruleone.db'
-            FormType = '10-K'
             ConceptFilterPath = $null
             SecContact = $null
         }
@@ -15,7 +23,6 @@ function Get-Config {
         $config = Get-Content -Path $script:DefaultConfigPath -Raw | ConvertFrom-Json
         return [pscustomobject]@{
             DatabasePath = $config.DatabasePath
-            FormType = $config.FormType
             ConceptFilterPath = $config.ConceptFilterPath
             SecContact = $config.SecContact
         }
@@ -24,19 +31,27 @@ function Get-Config {
         Write-Information "Unable to read config at $script:DefaultConfigPath. Using defaults."
         return [pscustomobject]@{
             DatabasePath = Join-Path $script:RepoRoot 'ruleone.db'
-            FormType = '10-K'
             ConceptFilterPath = $null
             SecContact = $null
         }
     }
 }
 
+<#
+.SYNOPSIS
+    Updates persisted RuleOne module configuration.
+.DESCRIPTION
+    Merges the specified settings into RuleOne.config.json, preserving any
+    settings not explicitly passed on the command line.
+.EXAMPLE
+    Set-R1Config -SecContact 'jane@example.com'
+.EXAMPLE
+    Set-R1Config -DatabasePath 'C:\data\ruleone.db' -ConceptFilterPath 'C:\config\concepts.json'
+#>
 function Set-Config {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$DatabasePath,
-        [ValidateSet('10-K', '10-Q')]
-        [string]$FormType,
         [string]$ConceptFilterPath,
         [string]$SecContact
     )
@@ -45,12 +60,13 @@ function Set-Config {
 
     $config = [ordered]@{
         DatabasePath = if ($PSBoundParameters.ContainsKey('DatabasePath')) { $DatabasePath } else { $existingConfig.DatabasePath }
-        FormType = if ($PSBoundParameters.ContainsKey('FormType')) { $FormType } else { $existingConfig.FormType }
         ConceptFilterPath = if ($PSBoundParameters.ContainsKey('ConceptFilterPath')) { $ConceptFilterPath } else { $existingConfig.ConceptFilterPath }
         SecContact = if ($PSBoundParameters.ContainsKey('SecContact')) { $SecContact } else { $existingConfig.SecContact }
     }
 
-    $config | ConvertTo-Json | Set-Content -Path $script:DefaultConfigPath -Encoding UTF8
+    if ($PSCmdlet.ShouldProcess($script:DefaultConfigPath, 'Update RuleOne configuration')) {
+        $config | ConvertTo-Json | Set-Content -Path $script:DefaultConfigPath -Encoding UTF8
+    }
 
     return Get-Config
 }

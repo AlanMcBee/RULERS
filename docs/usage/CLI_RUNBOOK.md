@@ -1,12 +1,18 @@
 # CLI Runbook
 
-This runbook describes current command behavior for `RuleOne.ETL`.
+This runbook describes current command behavior for `RuleOne.ETL`. For a
+PowerShell-friendly wrapper with structured objects and durable
+configuration, see [POWERSHELL_MODULE.md](POWERSHELL_MODULE.md).
 
 ## Prerequisites
 
 1. .NET 8 SDK installed
 2. Dependencies restored (`dotnet restore`)
 3. Project built (`dotnet build`)
+4. Optional: set the `RULEONE_SEC_CONTACT` environment variable (or the
+   PowerShell module's `SecContact` config setting) to a contact string per
+   [SEC's developer guidance](https://www.sec.gov/developer). Defaults to a
+   project URL if unset.
 
 ## Commands
 
