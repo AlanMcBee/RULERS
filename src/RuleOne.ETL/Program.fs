@@ -174,7 +174,7 @@ let main argv =
             0
         with
         | ex ->
-            printfn "Could not resolve ticker %s from SEC data: %s" ticker ex.Message
+            printfn "Could not resolve ticker %s from SEC data. The SEC access request was rejected or rate-limited. Details: %s" ticker ex.Message
             1
 
     | [| "query"; cik |] ->

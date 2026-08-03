@@ -30,11 +30,31 @@ module SecEdgar =
         FiscalPeriod: string option
     }
     
+    let private getConfiguredContact () =
+        let configured = Environment.GetEnvironmentVariable("RULEONE_SEC_CONTACT")
+        if String.IsNullOrWhiteSpace(configured) then
+            "https://github.com/AlanMcBee/RULERS"
+        else
+            configured
+
     let private httpClient =
         lazy
             let client = new HttpClient()
-            // SEC requires a User-Agent header; use the supported API to avoid init-time header issues.
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("RuleOne/1.0 (+https://github.com/AlanMcBee/RULERS)")
+            let contact = getConfiguredContact ()
+            client.DefaultRequestHeaders.UserAgent.Clear()
+            client.DefaultRequestHeaders.UserAgent.ParseAdd($"RuleOne/1.0 (+{contact})")
+            client.DefaultRequestHeaders.Accept.Clear()
+            client.DefaultRequestHeaders.Accept.Add(MediaTypeWithQualityHeaderValue("application/json"))
+            client.DefaultRequestHeaders.AcceptEncoding.Clear()
+            client.DefaultRequestHeaders.AcceptEncoding.Add(StringWithQualityHeaderValue("gzip"))
+            client.DefaultRequestHeaders.AcceptEncoding.Add(StringWithQualityHeaderValue("deflate"))
+            client.DefaultRequestHeaders.Add("Accept-Encoding", "br")
+            client.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "empty")
+            client.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "cors")
+            client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "same-origin")
+            client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest")
+            client.DefaultRequestHeaders.Add("Contact", contact)
+            client.DefaultRequestHeaders.Add("Origin", "https://www.sec.gov")
             client
 
     let shouldRetryStatusCode (statusCode: HttpStatusCode) =
@@ -53,6 +73,10 @@ module SecEdgar =
             let cappedDelay = min 8000 (baseDelayMs * (pown 2 attempt))
             cappedDelay
 
+    let private shouldThrottle (statusCode: HttpStatusCode) =
+        statusCode = HttpStatusCode.TooManyRequests
+        || statusCode = HttpStatusCode.Forbidden
+
     let private sendWithRetry (requestUri: Uri) =
         let rec loop attempt =
             task {
@@ -63,6 +87,9 @@ module SecEdgar =
                 elif attempt < 4 && shouldRetryStatusCode response.StatusCode then
                     let delayMs = calculateRetryDelayMs attempt (Some response)
                     do! Task.Delay(delayMs)
+                    return! loop (attempt + 1)
+                elif attempt = 0 && shouldThrottle response.StatusCode then
+                    do! Task.Delay(2000)
                     return! loop (attempt + 1)
                 else
                     response.EnsureSuccessStatusCode() |> ignore

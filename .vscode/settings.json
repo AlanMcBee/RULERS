@@ -33,6 +33,23 @@
         "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-Command -Module RuleOne \\| Select-Object Name, CommandType \\| Sort-Object Name \\| Format-Table -AutoSize\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Resolve-R1Ticker MSFT \\| ConvertTo-Json -Depth 6\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"\\$headers=@\\{ 'User-Agent'='RuleOne/1\\.0 \\(\\+https://github\\.com/AlanMcBee/RULERS\\)'; 'Accept'='application/json, text/plain, \\*/\\*' \\}; try \\{ \\$r=Invoke-WebRequest -Uri 'https://www\\.sec\\.gov/files/company_tickers\\.json' -Headers \\$headers -Method Get -TimeoutSec 30; Write-Host 'Status:' \\$r\\.StatusCode; Write-Host \\('ContentLength:' \\+ \\$r\\.Content\\.Length\\) \\} catch \\{ Write-Host 'Status:' \\$_\\.Exception\\.Response\\.StatusCode\\.value__; Write-Host \\$_\\.Exception\\.Message \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^pwsh -NoProfile -Command \"\\$headers = @\\{ 'User-Agent' = 'RuleOne/1\\.0 \\(\\+https://github\\.com/AlanMcBee/RULERS\\)'; 'Accept' = 'application/json, text/plain, \\*/\\*' \\}; try \\{ \\$r = Invoke-WebRequest -Uri 'https://www\\.sec\\.gov/files/company_tickers\\.json' -Headers \\$headers -Method Get -TimeoutSec 30; Write-Host \\('Status:' \\+ \\$r\\.StatusCode\\); Write-Host \\('ContentLength:' \\+ \\$r\\.Content\\.Length\\) \\} catch \\{ Write-Host \\('Status:' \\+ \\$_\\.Exception\\.Response\\.StatusCode\\.value__\\); Write-Host \\$_\\.Exception\\.Message \\}\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "dotnet build": true,
+        "/^dotnet build RuleOne\\.sln ; pwsh -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Resolve-R1Ticker MSFT \\| ConvertTo-Json -Depth 6\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
