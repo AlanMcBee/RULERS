@@ -210,6 +210,22 @@ let main argv =
                 (Option.defaultValue "" fact.Unit)
         
         0 // Success
+
+    | [| "list" |] ->
+        printfn "Listing securities in database"
+        printfn ""
+
+        let securities = listSecurities connectionString
+        printfn "Found %d securities" (List.length securities)
+
+        for security in securities do
+            printfn "%s | %s | %s | %d facts"
+                security.CIK
+                (Option.defaultValue "N/A" security.CompanyName)
+                (Option.defaultValue "N/A" security.LastFilingDate)
+                security.FactCount
+
+        0 // Success
     
     | _ ->
         printfn "Usage:"
@@ -218,6 +234,7 @@ let main argv =
         printfn "  dotnet run lookup <TICKER>                                - Resolve ticker to CIK"
         printfn "  dotnet run query <CIK>                                     - Query facts by CIK"
         printfn "  dotnet run concept <CONCEPT>                               - Query facts by concept name"
+        printfn "  dotnet run list                                            - List securities currently in the database"
         printfn ""
         printfn "Examples:"
         printfn "  dotnet run 0000789019 10-K                             - Fetch Microsoft 10-K filings"
@@ -225,4 +242,5 @@ let main argv =
         printfn "  dotnet run lookup AAPL                                  - Resolve Apple ticker to CIK"
         printfn "  dotnet run query 0000789019                            - Query Microsoft facts"
         printfn "  dotnet run concept Revenues                            - Query all revenue facts"
+        printfn "  dotnet run list                                         - List securities in the database"
         1 // Error

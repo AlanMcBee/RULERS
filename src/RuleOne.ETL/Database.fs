@@ -145,3 +145,30 @@ module Database =
         
         connection.Close()
         results |> Seq.toList
+
+    /// List securities that have at least one fact in the database.
+    let listSecurities (connectionString: string) =
+        use connection = new SqliteConnection(connectionString)
+        connection.Open()
+
+        let queryCommand = connection.CreateCommand()
+        queryCommand.CommandText <- """
+            SELECT CIK, CompanyName, MAX(FilingDate) AS LastFilingDate, COUNT(*) AS FactCount
+            FROM Facts
+            GROUP BY CIK, CompanyName
+            ORDER BY CompanyName, CIK
+        """
+
+        use reader = queryCommand.ExecuteReader()
+
+        let results = ResizeArray<_>()
+        while reader.Read() do
+            results.Add({|
+                CIK = reader.GetString(0)
+                CompanyName = if reader.IsDBNull(1) then None else Some(reader.GetString(1))
+                LastFilingDate = if reader.IsDBNull(2) then None else Some(reader.GetString(2))
+                FactCount = reader.GetInt32(3)
+            |})
+
+        connection.Close()
+        results |> Seq.toList

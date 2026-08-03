@@ -20,6 +20,11 @@
         "/^cd 's:\\\\github\\.com\\\\AlanMcBee\\\\RULERS' ; dotnet test RuleOne\\.sln ; pwsh -NoLogo -NoProfile -Command \"Import-Module \\./modules/RuleOne/RuleOne\\.psd1; Resolve-RuleOneTicker -Ticker AAPL \\| Format-List \\*\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "dotnet run": true,
+        "/^powershell -NoProfile -Command \"Import-Module \\.\\\\modules\\\\RuleOne\\\\RuleOne\\.psd1 -Force; Get-Command -Module RuleOne \\| Select-Object Name, CommandType \\| Sort-Object Name \\| Format-Table -AutoSize\"$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

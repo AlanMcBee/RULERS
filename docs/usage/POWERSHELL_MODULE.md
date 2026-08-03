@@ -11,10 +11,11 @@ Import-Module .\modules\RuleOne\RuleOne.psd1
 ## Example commands
 
 ```powershell
-Resolve-RuleOneTicker -Ticker AAPL
-Import-RuleOneFilings -CIK 0000320193 -FormType 10-K
-Get-RuleOneFacts -CIK 0000320193
-Get-RuleOneConceptFacts -Concept Revenues
+Resolve-R1Ticker -Ticker AAPL
+Import-R1Filings -CIK 0000320193 -FormType 10-K
+Get-R1Facts -CIK 0000320193
+Get-R1ConceptFacts -Concept Revenues
+Get-R1Securities
 ```
 
 ## Notes

@@ -5,7 +5,7 @@ $script:RepoRoot = Split-Path -Parent (Split-Path -Parent $script:ModuleRoot)
 $script:EtlProjectPath = Join-Path $script:RepoRoot 'src/RuleOne.ETL'
 $script:DefaultConfigPath = Join-Path $script:ModuleRoot 'RuleOne.config.json'
 
-function Get-RuleOneConfig {
+function Get-R1Config {
     [CmdletBinding()]
     param()
 
@@ -35,7 +35,7 @@ function Get-RuleOneConfig {
     }
 }
 
-function Set-RuleOneConfig {
+function Set-R1Config {
     [CmdletBinding()]
     param(
         [string]$DatabasePath,
@@ -52,10 +52,10 @@ function Set-RuleOneConfig {
 
     $config | ConvertTo-Json | Set-Content -Path $script:DefaultConfigPath -Encoding UTF8
 
-    return Get-RuleOneConfig
+    return Get-R1Config
 }
 
-function Resolve-RuleOneTicker {
+function Resolve-R1Ticker {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -93,7 +93,7 @@ function Resolve-RuleOneTicker {
     }
 }
 
-function Import-RuleOneFilings {
+function Import-R1Filings {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -104,7 +104,7 @@ function Import-RuleOneFilings {
         [string]$DatabasePath
     )
 
-    $config = Get-RuleOneConfig
+    $config = Get-R1Config
     if (-not $FormType) {
         $FormType = $config.FormType
     }
@@ -138,7 +138,7 @@ function Import-RuleOneFilings {
     }
 }
 
-function Get-RuleOneFacts {
+function Get-R1Facts {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -146,7 +146,7 @@ function Get-RuleOneFacts {
         [string]$DatabasePath
     )
 
-    $config = Get-RuleOneConfig
+    $config = Get-R1Config
     $effectiveDatabasePath = if ($DatabasePath) { $DatabasePath } else { $config.DatabasePath }
 
     $output = & dotnet run --project $script:EtlProjectPath query $CIK 2>&1
@@ -163,7 +163,7 @@ function Get-RuleOneFacts {
     }
 }
 
-function Get-RuleOneConceptFacts {
+function Get-R1ConceptFacts {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
@@ -171,7 +171,7 @@ function Get-RuleOneConceptFacts {
         [string]$DatabasePath
     )
 
-    $config = Get-RuleOneConfig
+    $config = Get-R1Config
     $effectiveDatabasePath = if ($DatabasePath) { $DatabasePath } else { $config.DatabasePath }
 
     $output = & dotnet run --project $script:EtlProjectPath concept $Concept 2>&1
@@ -188,11 +188,44 @@ function Get-RuleOneConceptFacts {
     }
 }
 
+function Get-R1Securities {
+    [CmdletBinding()]
+    param(
+        [string]$DatabasePath
+    )
+
+    $config = Get-R1Config
+    $effectiveDatabasePath = if ($DatabasePath) { $DatabasePath } else { $config.DatabasePath }
+
+    $output = & dotnet run --project $script:EtlProjectPath list 2>&1
+    $text = ($output | Out-String).Trim()
+
+    if ($LASTEXITCODE -ne 0) {
+        throw $text
+    }
+
+    $rows = @()
+    foreach ($line in $text -split "`r?`n") {
+        if ($line -match '^(?<CIK>\S+)\s*\|\s*(?<CompanyName>[^|]+)\s*\|\s*(?<LastFilingDate>[^|]+)\s*\|\s*(?<FactCount>\d+)\s*facts$') {
+            $rows += [pscustomobject]@{
+                CIK = $Matches.CIK
+                CompanyName = $Matches.CompanyName.Trim()
+                LastFilingDate = $Matches.LastFilingDate.Trim()
+                FactCount = [int]$Matches.FactCount
+                DatabasePath = $effectiveDatabasePath
+            }
+        }
+    }
+
+    return $rows
+}
+
 Export-ModuleMember -Function @(
-    'Resolve-RuleOneTicker',
-    'Import-RuleOneFilings',
-    'Get-RuleOneFacts',
-    'Get-RuleOneConceptFacts',
-    'Get-RuleOneConfig',
-    'Set-RuleOneConfig'
+    'Resolve-R1Ticker',
+    'Import-R1Filings',
+    'Get-R1Facts',
+    'Get-R1ConceptFacts',
+    'Get-R1Config',
+    'Set-R1Config',
+    'Get-R1Securities'
 )
