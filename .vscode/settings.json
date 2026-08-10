@@ -80,6 +80,14 @@
             "matchCommandLine": true
         },
         "ConvertFrom-Json": true,
-        "Out-Null": true
-    }
+        "Out-Null": true,
+        "code": true,
+        "ConvertTo-Json": true,
+        "dotnet tool": true,
+        "/^dotnet --list-sdks; dotnet --list-runtimes$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    },
+    "chat.disableAIFeatures": false
 }
