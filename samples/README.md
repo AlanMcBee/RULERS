@@ -10,25 +10,28 @@ To run the hybrid F#/PowerShell notebook (`FinancialAnalysis.verso`), you need:
 
 See [ADR-0004](../docs/adr/ADR-0004-notebook-polyglot-language-strategy.md) for why the notebook uses both F# and PowerShell.
 
-## Before Running the Notebook
+## Choosing a Company
 
-1. First, fetch some data using the ETL application:
-   ```powershell
-   # Example: Fetch Microsoft 10-K filings
-   dotnet run --project src/RuleOne.ETL 0000789019 10-K
-   ```
+The notebook analyzes one company at a time, selected by the `ticker` parameter
+(defaults to `MSFT`). Set it in the Parameters cell near the top of the notebook,
+or pass it on the command line for a headless run:
 
-2. Verify data was stored:
-   ```powershell
-   dotnet run --project src/RuleOne.ETL query 0000789019
-   ```
+```powershell
+verso run samples/FinancialAnalysis.verso --param ticker=AAPL
+```
+
+The first cell resolves the ticker to a CIK and automatically fetches its 10-K
+filings if the database doesn't already have data for that company - there's no
+separate manual fetch step required before running the notebook.
 
 ## Running the Notebook
 
 1. Open `samples/FinancialAnalysis.verso` in your notebook environment
-2. Execute cells sequentially
-3. The notebook will:
-   - Connect to the SQLite database and query financial facts (F#)
+2. Set the `ticker` parameter to the company you want to analyze (or keep the `MSFT` default)
+3. Execute cells sequentially
+4. The notebook will:
+   - Resolve the ticker to a CIK and fetch 10-K data if it isn't already stored (PowerShell)
+   - Connect to the SQLite database and query financial facts for that company (F#)
    - Create visualizations with Plotly, rendered as standalone HTML (PowerShell)
    - Calculate growth metrics (F#)
    - List securities via the `RuleOne` PowerShell module (PowerShell)
@@ -36,19 +39,23 @@ See [ADR-0004](../docs/adr/ADR-0004-notebook-polyglot-language-strategy.md) for 
 ## Notebook Contents
 
 The notebook demonstrates:
-- Database connectivity and data shaping via `RuleOne.ETL`/`RuleOne.Analytics` (F#)
+- Resolving a `ticker` parameter to a CIK and auto-fetching missing data (PowerShell)
+- Database connectivity and data shaping via `RuleOne.ETL`/`RuleOne.Analytics`, scoped to one company (F#)
 - Querying revenue and earnings data (F#)
-- Creating line charts for trends (PowerShell)
+- Creating line charts for trends, titled with the current ticker (PowerShell)
 - Calculating CAGR (Compound Annual Growth Rate) (F#)
 - Orchestrating the `RuleOne` PowerShell module (PowerShell)
 
 ## Troubleshooting
 
+**Issue**: `Could not resolve ticker '...' to a CIK via SEC data`
+- **Solution**: Confirm the ticker is spelled correctly and is a valid, currently-listed SEC ticker; check network access to SEC's ticker lookup endpoint.
+
 **Issue**: Database file not found
-- **Solution**: Run the ETL app first to create and populate the database
+- **Solution**: Run the notebook's ticker-resolution cell first; it creates and populates the database automatically for the current `ticker`
 
 **Issue**: No data to display
-- **Solution**: Ensure you've fetched data for at least one company using the ETL app
+- **Solution**: Confirm the ticker-resolution cell reported a successful fetch (or existing facts) for the current `ticker` before running later cells
 
 **Issue**: Plotly charts not displaying
 - **Solution**: The chart cells write a standalone HTML file to `samples/` and open it with `Invoke-Item`; confirm your default browser opened and that you have network access to `cdn.plot.ly`.
