@@ -8,7 +8,7 @@ RuleOne is a lightweight, modular financial analysis toolkit that:
 - Fetches SEC EDGAR 10-K/10-Q Inline XBRL filings by CIK
 - Stores financial facts in a SQLite database
 - Provides analytics functions for key metrics (CAGR, ROIC, EPS, MOS)
-- Includes visualization capabilities via F# notebooks with Plotly.NET
+- Includes a hybrid F#/PowerShell Verso notebook for exploration and Plotly (HTML) visualizations
 
 ## Features
 
@@ -25,7 +25,7 @@ RuleOne is a lightweight, modular financial analysis toolkit that:
 - **MOS** (Margin of Safety) - Determine investment safety margin
 
 ### Interactive Notebook
-- F# Jupyter notebook with Plotly.NET integration
+- Hybrid F#/PowerShell Verso notebook (see [ADR-0004](docs/adr/ADR-0004-notebook-polyglot-language-strategy.md))
 - Query and visualize revenue, earnings, and growth trends
 - Calculate financial metrics interactively
 
@@ -44,7 +44,7 @@ RULERS/
 │   └── RuleOne.Tests/         # xUnit test project
 │       └── Tests.fs           # Unit tests
 ├── samples/
-│   └── FinancialAnalysis.ipynb # Sample F# notebook
+│   └── FinancialAnalysis.verso # Sample hybrid F#/PowerShell notebook
 ├── .github/
 │   └── workflows/
 │       └── dotnet.yml         # CI/CD workflow
@@ -73,7 +73,7 @@ Start with `docs/README.md` and `docs/progress/PLAN_ENGINE_REBOOT.md`.
 
 ### Prerequisites
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) or later
-- (Optional) [Jupyter](https://jupyter.org/) or VS Code with .NET Interactive for notebooks
+- (Optional) VS Code with the [Verso Notebook](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook) extension for `samples/FinancialAnalysis.verso`
 
 ### Building the Solution
 
@@ -154,7 +154,7 @@ match mos with
 ### Using the Notebook
 
 1. Fetch some data first using the ETL app
-2. Open `samples/FinancialAnalysis.ipynb` in Jupyter or VS Code
+2. Open `samples/FinancialAnalysis.verso` in VS Code with the Verso Notebook extension
 3. Execute cells sequentially to analyze and visualize data
 
 ## Database Schema
@@ -212,7 +212,7 @@ dotnet run --project src/RuleOne.ETL 0000320193 10-K
 dotnet run --project src/RuleOne.ETL concept Revenues
 
 # 3. Open the notebook and visualize trends
-# (Open samples/FinancialAnalysis.ipynb)
+# (Open samples/FinancialAnalysis.verso)
 ```
 
 ## Rule #1 Investing
@@ -239,5 +239,5 @@ This software is for educational and research purposes only. It is not financial
 ## Acknowledgments
 
 - SEC EDGAR API for public company data
-- Plotly.NET for visualization capabilities
+- Plotly.js for visualization capabilities
 - F# community for excellent tooling and libraries

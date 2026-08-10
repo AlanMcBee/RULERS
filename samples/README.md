@@ -2,25 +2,13 @@
 
 ## Prerequisites
 
-To run the F# notebook (`FinancialAnalysis.ipynb`), you need one of the following:
+To run the hybrid F#/PowerShell notebook (`FinancialAnalysis.verso`), you need:
 
-### Option 1: Visual Studio Code (Recommended)
 1. Install [VS Code](https://code.visualstudio.com/)
-2. Install the [.NET Interactive Notebooks extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode)
-3. Open the notebook file in VS Code
+2. Install the [Verso Notebook](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook) extension
+3. Open `samples/FinancialAnalysis.verso` in VS Code
 
-### Option 2: Jupyter with .NET Interactive
-1. Install [Jupyter](https://jupyter.org/install)
-2. Install [.NET Interactive](https://github.com/dotnet/interactive):
-   ```powershell
-   dotnet tool install -g Microsoft.dotnet-interactive
-   dotnet interactive jupyter install
-   ```
-3. Launch Jupyter:
-   ```powershell
-   jupyter notebook
-   ```
-4. Navigate to `samples/FinancialAnalysis.ipynb`
+See [ADR-0004](../docs/adr/ADR-0004-notebook-polyglot-language-strategy.md) for why the notebook uses both F# and PowerShell.
 
 ## Before Running the Notebook
 
@@ -37,22 +25,22 @@ To run the F# notebook (`FinancialAnalysis.ipynb`), you need one of the followin
 
 ## Running the Notebook
 
-1. Open `samples/FinancialAnalysis.ipynb` in your notebook environment
-2. Execute cells sequentially (Shift+Enter)
+1. Open `samples/FinancialAnalysis.verso` in your notebook environment
+2. Execute cells sequentially
 3. The notebook will:
-   - Connect to the SQLite database
-   - Query financial facts
-   - Create visualizations with Plotly.NET
-   - Calculate growth metrics
+   - Connect to the SQLite database and query financial facts (F#)
+   - Create visualizations with Plotly, rendered as standalone HTML (PowerShell)
+   - Calculate growth metrics (F#)
+   - List securities via the `RuleOne` PowerShell module (PowerShell)
 
 ## Notebook Contents
 
 The notebook demonstrates:
-- Database connectivity
-- Querying revenue and earnings data
-- Creating line charts for trends
-- Calculating CAGR (Compound Annual Growth Rate)
-- Interactive data exploration
+- Database connectivity and data shaping via `RuleOne.ETL`/`RuleOne.Analytics` (F#)
+- Querying revenue and earnings data (F#)
+- Creating line charts for trends (PowerShell)
+- Calculating CAGR (Compound Annual Growth Rate) (F#)
+- Orchestrating the `RuleOne` PowerShell module (PowerShell)
 
 ## Troubleshooting
 
@@ -63,7 +51,10 @@ The notebook demonstrates:
 - **Solution**: Ensure you've fetched data for at least one company using the ETL app
 
 **Issue**: Plotly charts not displaying
-- **Solution**: Make sure you're running in a notebook environment that supports JavaScript output
+- **Solution**: The chart cells write a standalone HTML file to `samples/` and open it with `Invoke-Item`; confirm your default browser opened and that you have network access to `cdn.plot.ly`.
+
+**Issue**: `Get-R1Securities` (or other `R1`-prefixed commands) not found
+- **Solution**: Make sure the module import cell ran successfully; see [POWERSHELL_MODULE.md](../docs/usage/POWERSHELL_MODULE.md).
 
 ## Example Companies to Analyze
 

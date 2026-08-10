@@ -179,7 +179,7 @@ Write-Host "Querying equity..."
 dotnet run --project src/RuleOne.ETL concept StockholdersEquity | Select-String "0000320193"
 
 # 3. Analyze in notebook
-Write-Host "Open samples/FinancialAnalysis.ipynb to visualize trends"
+Write-Host "Open samples/FinancialAnalysis.verso to visualize trends"
 ```
 
 ### The Big Four Numbers

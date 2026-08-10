@@ -20,7 +20,7 @@ RULERS/
 │   └── RuleOne.Tests/            # xUnit Test Project
 │       └── Tests.fs              # 10 comprehensive tests
 ├── samples/
-│   ├── FinancialAnalysis.ipynb   # F# Jupyter notebook
+│   ├── FinancialAnalysis.verso   # Hybrid F#/PowerShell Verso notebook
 │   └── README.md                 # Notebook usage guide
 ├── .github/workflows/
 │   └── dotnet.yml                # GitHub Actions CI/CD
@@ -99,19 +99,17 @@ RULERS/
 
 ### 5. Interactive Notebook
 
-**File:** `samples/FinancialAnalysis.ipynb`
+**File:** `samples/FinancialAnalysis.verso`
 
 **Features:**
-- Database connectivity examples
-- Revenue and earnings queries
-- Line charts with Plotly.NET
+- F# cells for database connectivity and data shaping (calling `RuleOne.ETL.Database` and `RuleOne.Analytics.FinancialMetrics` directly)
+- PowerShell cells for orchestration: chart rendering and calling the `RuleOne` PowerShell module
 - CAGR calculation demonstrations
-- Multi-company comparison capabilities
+- See [ADR-0004](docs/adr/ADR-0004-notebook-polyglot-language-strategy.md) for the language split rationale
 
 **Visualization Types:**
-- Time-series line charts
+- Time-series line charts (standalone HTML with Plotly.js)
 - Combined revenue/earnings trends
-- Interactive Plotly.NET charts
 
 ### 6. GitHub Actions CI/CD
 

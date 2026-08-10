@@ -11,93 +11,73 @@
     {
       "id": "52433ee0-72cc-4894-b215-586c24679f48",
       "type": "markdown",
-      "source": "# RuleOne Financial Analysis Notebook\n\nThis notebook demonstrates querying SEC EDGAR data from SQLite and visualizing financial metrics, using PowerShell in the Verso Notebook extension."
+      "source": "# RuleOne Financial Analysis Notebook\n\nThis notebook queries SEC EDGAR data from SQLite and visualizes financial metrics, using both F# and PowerShell in the Verso Notebook extension (see [ADR-0004](../docs/adr/ADR-0004-notebook-polyglot-language-strategy.md)):\n\n- **F#** cells query and shape the data, calling directly into the `RuleOne.ETL` and `RuleOne.Analytics` libraries.\n- **PowerShell** cells handle orchestration: rendering charts, opening files, and calling the already-built `RuleOne` PowerShell module.\n\nAll cells share one variable store, so values flow between languages without manual hand-off."
     },
     {
       "id": "af1aa2ce-4a91-49cf-8184-265cdbbad773",
       "type": "code",
-      "language": "powershell",
-      "source": "# Load the SQLite ADO.NET provider built by the RuleOne.ETL project.\n# Adjust $repoRoot if your working directory is not the repository root.\n$repoRoot = $PWD.Path\n$etlBin = Join-Path $repoRoot \u0027src/RuleOne.ETL/bin/Debug/net8.0\u0027\n\nAdd-Type -Path (Join-Path $etlBin \u0027SQLitePCLRaw.core.dll\u0027)\nAdd-Type -Path (Join-Path $etlBin \u0027SQLitePCLRaw.provider.e_sqlite3.dll\u0027)\nAdd-Type -Path (Join-Path $etlBin \u0027SQLitePCLRaw.batteries_v2.dll\u0027)\nAdd-Type -Path (Join-Path $etlBin \u0027Microsoft.Data.Sqlite.dll\u0027)\n[SQLitePCL.Batteries]::Init()\n\nWrite-Output \u0022SQLite provider loaded from $etlBin\u0022",
-      "outputs": [
-        {
-          "mimeType": "text/plain",
-          "content": "SyntaxError: invalid syntax (4018522266.py, line 5)\r\n  \u001B[36mCell\u001B[39m\u001B[36m \u001B[39m\u001B[32mIn[1]\u001B[39m\u001B[32m, line 5\u001B[39m\n\u001B[31m    \u001B[39m\u001B[31mopen System\u001B[39m\n         ^\n\u001B[31mSyntaxError\u001B[39m\u001B[31m:\u001B[39m invalid syntax\n",
-          "isError": true,
-          "errorName": "SyntaxError",
-          "errorStackTrace": "  \u001B[36mCell\u001B[39m\u001B[36m \u001B[39m\u001B[32mIn[1]\u001B[39m\u001B[32m, line 5\u001B[39m\n\u001B[31m    \u001B[39m\u001B[31mopen System\u001B[39m\n         ^\n\u001B[31mSyntaxError\u001B[39m\u001B[31m:\u001B[39m invalid syntax\n"
-        }
-      ]
+      "language": "fsharp",
+      "source": "// Reference the RuleOne assemblies and SQLite provider built by `dotnet build`.\n// Paths assume the notebook runs with the repository root as the working directory.\n#r \"src/RuleOne.ETL/bin/Debug/net8.0/SQLitePCLRaw.core.dll\"\n#r \"src/RuleOne.ETL/bin/Debug/net8.0/SQLitePCLRaw.provider.e_sqlite3.dll\"\n#r \"src/RuleOne.ETL/bin/Debug/net8.0/SQLitePCLRaw.batteries_v2.dll\"\n#r \"src/RuleOne.ETL/bin/Debug/net8.0/Microsoft.Data.Sqlite.dll\"\n#r \"src/RuleOne.Analytics/bin/Debug/net8.0/RuleOne.Analytics.dll\"\n#r \"src/RuleOne.ETL/bin/Debug/net8.0/RuleOne.ETL.dll\"\n\nopen RuleOne.ETL\nopen RuleOne.Analytics\n\nSQLitePCL.Batteries.Init()\n\nlet repoRoot = System.IO.Directory.GetCurrentDirectory()\nlet dbPath = System.IO.Path.Combine(repoRoot, \"ruleone.db\")\nlet connectionString = sprintf \"Data Source=%s\" dbPath\n\nprintfn \"Using database at %s\" connectionString"
     },
     {
       "id": "a22aaea0-a66f-49e4-ade0-4f82dc8caf8c",
       "type": "markdown",
-      "source": "## Connect to Database\n\nFirst, let\u0027s connect to our RuleOne SQLite database and query some facts."
+      "source": "## Query Revenue and Earnings (F#)\n\nCall `RuleOne.ETL.Database.queryFactsByConcept` directly rather than re-implementing SQLite access."
     },
     {
       "id": "ba1b9799-850d-4fd6-ab6f-a2a294fd3774",
       "type": "code",
-      "language": "powershell",
-      "source": "# Database connection\n$dbPath = Join-Path $repoRoot \u0027ruleone.db\u0027\n$connectionString = \u0022Data Source=$dbPath\u0022\n\n# Helper function to query facts by concept\nfunction Get-FactsByConcept {\n    param(\n        [Parameter(Mandatory = $true)]\n        [string]$Concept\n    )\n\n    $connection = [Microsoft.Data.Sqlite.SqliteConnection]::new($connectionString)\n    $connection.Open()\n\n    $queryCommand = $connection.CreateCommand()\n    $queryCommand.CommandText = \u0022SELECT * FROM Facts WHERE Concept LIKE @concept ORDER BY FilingDate ASC\u0022\n    $queryCommand.Parameters.AddWithValue(\u0027@concept\u0027, \u0022%$Concept%\u0022) | Out-Null\n\n    $reader = $queryCommand.ExecuteReader()\n\n    $results = [System.Collections.Generic.List[pscustomobject]]::new()\n    while ($reader.Read()) {\n        $results.Add([pscustomobject]@{\n            CIK         = $reader.GetString(1)\n            CompanyName = if ($reader.IsDBNull(2)) { \u0027Unknown\u0027 } else { $reader.GetString(2) }\n            FilingDate  = if ($reader.IsDBNull(3)) { \u0027Unknown\u0027 } else { $reader.GetString(3) }\n            Concept     = $reader.GetString(5)\n            Value       = if ($reader.IsDBNull(6)) { \u00270\u0027 } else { $reader.GetString(6) }\n            Period      = if ($reader.IsDBNull(9)) { \u0027Unknown\u0027 } else { $reader.GetString(9) }\n        })\n    }\n\n    $connection.Close()\n    return $results\n}\n\nWrite-Output \u0022Database helper functions loaded\u0022"
+      "language": "fsharp",
+      "source": "let revenueFacts = Database.queryFactsByConcept connectionString \"Revenues\"\nlet earningsFacts = Database.queryFactsByConcept connectionString \"NetIncome\"\n\nprintfn \"Found %d revenue records and %d earnings records\" revenueFacts.Length earningsFacts.Length\n\nrevenueFacts\n|> List.truncate 5\n|> List.iter (fun f ->\n    printfn \"%s - %s: $%s\"\n        (defaultArg f.CompanyName \"Unknown\")\n        (defaultArg f.Period \"Unknown\")\n        (defaultArg f.Value \"0\"))"
     },
     {
       "id": "3a8ee6ba-845c-46cc-8a86-bd4e27562605",
       "type": "markdown",
-      "source": "## Query Revenue Data\n\nLet\u0027s query revenue data from our database."
+      "source": "## Shape Data and Calculate CAGR (F#)\n\nShape the raw facts into chartable records and calculate CAGR using `RuleOne.Analytics.FinancialMetrics`, leveraging F#'s records and option types."
     },
     {
       "id": "59310437-1fc2-4262-8d5d-594a583fe4e4",
       "type": "code",
-      "language": "powershell",
-      "source": "# Query revenue facts\n$revenueFacts = Get-FactsByConcept -Concept \u0027Revenues\u0027\n\nWrite-Output \u0022Found $($revenueFacts.Count) revenue records\u0022\n\n# Display first few records\n$revenueFacts | Select-Object -First 5 | ForEach-Object {\n    Write-Output \u0022$($_.CompanyName) - $($_.Period): \u0060$$($_.Value)\u0022\n}"
+      "language": "fsharp",
+      "source": "type ChartPoint = { Period: string; ValueMillions: decimal }\n\nlet toMillions (value: string option) =\n    match value |> Option.bind (fun v ->\n        match System.Decimal.TryParse v with\n        | true, parsed -> Some parsed\n        | false, _ -> None) with\n    | Some parsed -> parsed / 1_000_000m\n    | None -> 0m\n\nlet revenueData =\n    revenueFacts\n    |> List.map (fun f -> { Period = defaultArg f.Period \"Unknown\"; ValueMillions = toMillions f.Value })\n    |> List.sortBy (fun r -> r.Period)\n\nlet earningsData =\n    earningsFacts\n    |> List.map (fun f -> { Period = defaultArg f.Period \"Unknown\"; ValueMillions = toMillions f.Value })\n    |> List.sortBy (fun r -> r.Period)\n\nlet revenueCagr =\n    if revenueData.Length >= 2 then\n        let first = revenueData.[0].ValueMillions\n        let last = revenueData.[revenueData.Length - 1].ValueMillions\n        let years = decimal (revenueData.Length - 1)\n        FinancialMetrics.calculateCAGR first last years\n    else\n        None\n\nmatch revenueCagr with\n| Some cagr -> printfn \"Revenue CAGR: %.2f%%\" (cagr * 100m)\n| None -> printfn \"Unable to calculate CAGR (need at least two periods of positive values)\""
     },
     {
       "id": "d9b37e06-81ce-466f-a96f-261e9ff34e5a",
       "type": "markdown",
-      "source": "## Visualize Revenue Trend\n\nCreate a line chart showing revenue growth over time."
+      "source": "## Visualize Revenue Trend (PowerShell)\n\nRendering a chart to a file and opening it is host/OS orchestration, so this uses PowerShell. `$revenueData` was produced by the F# cells above and is available here through Verso's shared variable store."
     },
     {
       "id": "e26296b1-73b2-41cc-8e57-558a0d25dcde",
       "type": "code",
       "language": "powershell",
-      "source": "# Prepare data for charting\n$revenueData = $revenueFacts | ForEach-Object {\n    $parsed = 0.0\n    $value = if ([double]::TryParse($_.Value, [ref]$parsed)) { $parsed / 1000000 } else { 0.0 } # Convert to millions\n    [pscustomobject]@{ Period = $_.Period; ValueMillions = $value }\n} | Sort-Object Period\n\n$periods = $revenueData.Period\n$values = $revenueData.ValueMillions\n\n# Render a standalone Plotly chart and open it in the default browser\n$chartPath = Join-Path $repoRoot \u0027samples/RevenueTrend.html\u0027\n$periodsJson = $periods | ConvertTo-Json -Compress\n$valuesJson = $values | ConvertTo-Json -Compress\n\n@\u0022\n\u003C!DOCTYPE html\u003E\n\u003Chtml\u003E\n\u003Chead\u003E\n    \u003Cmeta charset=\u0022utf-8\u0022\u003E\n    \u003Ctitle\u003ERevenue Growth Trend\u003C/title\u003E\n    \u003Cscript src=\u0022https://cdn.plot.ly/plotly-2.35.2.min.js\u0022\u003E\u003C/script\u003E\n\u003C/head\u003E\n\u003Cbody\u003E\n    \u003Cdiv id=\u0022chart\u0022 style=\u0022width:1000px;height:600px;\u0022\u003E\u003C/div\u003E\n    \u003Cscript\u003E\n        Plotly.newPlot(\u0027chart\u0027, [{\n            x: $periodsJson,\n            y: $valuesJson,\n            type: \u0027scatter\u0027,\n            mode: \u0027lines\u002Bmarkers\u0027,\n            name: \u0027Revenue\u0027\n        }], {\n            title: \u0027Revenue Growth Trend\u0027,\n            xaxis: { title: \u0027Period\u0027 },\n            yaxis: { title: \u0027Revenue (Millions USD)\u0027 }\n        });\n    \u003C/script\u003E\n\u003C/body\u003E\n\u003C/html\u003E\n\u0022@ | Set-Content -Path $chartPath -Encoding utf8\n\nInvoke-Item $chartPath\nWrite-Output \u0022Chart written to $chartPath\u0022"
+      "source": "$repoRoot = Get-Location\n$chartPath = Join-Path $repoRoot 'samples/RevenueTrend.html'\n\n$periodsJson = ($revenueData | ForEach-Object { $_.Period }) | ConvertTo-Json -Compress\n$valuesJson = ($revenueData | ForEach-Object { $_.ValueMillions }) | ConvertTo-Json -Compress\n\n@\"\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <title>Revenue Growth Trend</title>\n    <script src=\"https://cdn.plot.ly/plotly-2.35.2.min.js\"></script>\n</head>\n<body>\n    <div id=\"chart\" style=\"width:1000px;height:600px;\"></div>\n    <script>\n        Plotly.newPlot('chart', [{\n            x: $periodsJson,\n            y: $valuesJson,\n            type: 'scatter',\n            mode: 'lines+markers',\n            name: 'Revenue'\n        }], {\n            title: 'Revenue Growth Trend',\n            xaxis: { title: 'Period' },\n            yaxis: { title: 'Revenue (Millions USD)' }\n        });\n    </script>\n</body>\n</html>\n\"@ | Set-Content -Path $chartPath -Encoding utf8\n\nInvoke-Item $chartPath\nWrite-Output \"Chart written to $chartPath\""
     },
     {
       "id": "2237f034-01da-4253-b708-65cef81643e7",
       "type": "markdown",
-      "source": "## Query Earnings Data\n\nLet\u0027s query net income/earnings data."
+      "source": "## Visualize Revenue and Earnings Together (PowerShell)\n\nCombine `$revenueData` and `$earningsData` into one chart."
     },
     {
       "id": "d5730166-a134-4015-9286-60fac406afdd",
       "type": "code",
       "language": "powershell",
-      "source": "# Query earnings facts\n$earningsFacts = Get-FactsByConcept -Concept \u0027NetIncome\u0027\n\nWrite-Output \u0022Found $($earningsFacts.Count) earnings records\u0022\n\n# Display first few records\n$earningsFacts | Select-Object -First 5 | ForEach-Object {\n    Write-Output \u0022$($_.CompanyName) - $($_.Period): \u0060$$($_.Value)\u0022\n}"
+      "source": "$repoRoot = Get-Location\n$chartPath = Join-Path $repoRoot 'samples/RevenueAndEarningsTrend.html'\n\n$revenuePeriodsJson = ($revenueData | ForEach-Object { $_.Period }) | ConvertTo-Json -Compress\n$revenueValuesJson = ($revenueData | ForEach-Object { $_.ValueMillions }) | ConvertTo-Json -Compress\n$earningsPeriodsJson = ($earningsData | ForEach-Object { $_.Period }) | ConvertTo-Json -Compress\n$earningsValuesJson = ($earningsData | ForEach-Object { $_.ValueMillions }) | ConvertTo-Json -Compress\n\n@\"\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"utf-8\">\n    <title>Revenue and Earnings Trend</title>\n    <script src=\"https://cdn.plot.ly/plotly-2.35.2.min.js\"></script>\n</head>\n<body>\n    <div id=\"chart\" style=\"width:1000px;height:600px;\"></div>\n    <script>\n        Plotly.newPlot('chart', [\n            { x: $revenuePeriodsJson, y: $revenueValuesJson, type: 'scatter', mode: 'lines+markers', name: 'Revenue' },\n            { x: $earningsPeriodsJson, y: $earningsValuesJson, type: 'scatter', mode: 'lines+markers', name: 'Net Income' }\n        ], {\n            title: 'Revenue and Earnings Trend',\n            xaxis: { title: 'Period' },\n            yaxis: { title: 'Amount (Millions USD)' }\n        });\n    </script>\n</body>\n</html>\n\"@ | Set-Content -Path $chartPath -Encoding utf8\n\nInvoke-Item $chartPath\nWrite-Output \"Chart written to $chartPath\""
     },
     {
       "id": "48d9517c-1077-4909-b666-3abd322ba41f",
       "type": "markdown",
-      "source": "## Visualize Revenue and Earnings Together\n\nCreate a combined chart showing both revenue and earnings trends."
-    },
-    {
-      "id": "03b07d92-007c-4505-b4a4-10fef940252f",
-      "type": "code",
-      "language": "powershell",
-      "source": "# Prepare earnings data\n$earningsData = $earningsFacts | ForEach-Object {\n    $parsed = 0.0\n    $value = if ([double]::TryParse($_.Value, [ref]$parsed)) { $parsed / 1000000 } else { 0.0 } # Convert to millions\n    [pscustomobject]@{ Period = $_.Period; ValueMillions = $value }\n} | Sort-Object Period\n\n$earningsPeriods = $earningsData.Period\n$earningsValues = $earningsData.ValueMillions\n\n# Render a combined Plotly chart and open it in the default browser\n$chartPath = Join-Path $repoRoot \u0027samples/RevenueAndEarningsTrend.html\u0027\n$periodsJson = $periods | ConvertTo-Json -Compress\n$valuesJson = $values | ConvertTo-Json -Compress\n$earningsPeriodsJson = $earningsPeriods | ConvertTo-Json -Compress\n$earningsValuesJson = $earningsValues | ConvertTo-Json -Compress\n\n@\u0022\n\u003C!DOCTYPE html\u003E\n\u003Chtml\u003E\n\u003Chead\u003E\n    \u003Cmeta charset=\u0022utf-8\u0022\u003E\n    \u003Ctitle\u003ERevenue and Earnings Trend\u003C/title\u003E\n    \u003Cscript src=\u0022https://cdn.plot.ly/plotly-2.35.2.min.js\u0022\u003E\u003C/script\u003E\n\u003C/head\u003E\n\u003Cbody\u003E\n    \u003Cdiv id=\u0022chart\u0022 style=\u0022width:1000px;height:600px;\u0022\u003E\u003C/div\u003E\n    \u003Cscript\u003E\n        Plotly.newPlot(\u0027chart\u0027, [\n            { x: $periodsJson, y: $valuesJson, type: \u0027scatter\u0027, mode: \u0027lines\u002Bmarkers\u0027, name: \u0027Revenue\u0027 },\n            { x: $earningsPeriodsJson, y: $earningsValuesJson, type: \u0027scatter\u0027, mode: \u0027lines\u002Bmarkers\u0027, name: \u0027Net Income\u0027 }\n        ], {\n            title: \u0027Revenue and Earnings Trend\u0027,\n            xaxis: { title: \u0027Period\u0027 },\n            yaxis: { title: \u0027Amount (Millions USD)\u0027 }\n        });\n    \u003C/script\u003E\n\u003C/body\u003E\n\u003C/html\u003E\n\u0022@ | Set-Content -Path $chartPath -Encoding utf8\n\nInvoke-Item $chartPath\nWrite-Output \u0022Chart written to $chartPath\u0022"
-    },
-    {
-      "id": "80a25913-3df0-488d-a38c-ca5766568888",
-      "type": "markdown",
-      "source": "## Calculate Growth Metrics\n\nUse the RuleOne Analytics library to calculate CAGR (Compound Annual Growth Rate)."
+      "source": "## List Securities via the RuleOne Module (PowerShell)\n\nDemonstrate the other PowerShell role from ADR-0004: calling an already-built, well-established operation \u2014 here, the `RuleOne` module's `Get-R1Securities` (see [ADR-0003](../docs/adr/ADR-0003-powershell-module-design.md)) \u2014 instead of writing new query logic."
     },
     {
       "id": "07b55562-8b8a-476c-97ac-ee2c0d94f386",
       "type": "code",
       "language": "powershell",
-      "source": "# Manual CAGR (Compound Annual Growth Rate) calculation for demonstration\nfunction Get-CAGR {\n    param(\n        [double]$BeginValue,\n        [double]$EndValue,\n        [double]$Years\n    )\n\n    if ($BeginValue -le 0 -or $EndValue -le 0 -or $Years -le 0) {\n        return $null\n    }\n\n    $ratio = $EndValue / $BeginValue\n    $cagr = [math]::Pow($ratio, 1.0 / $Years) - 1.0\n    return $cagr * 100.0 # Return as percentage\n}\n\n# Calculate revenue CAGR if we have enough data\nif ($revenueData.Count -ge 2) {\n    $firstRevenue = $revenueData[0].ValueMillions\n    $lastRevenue = $revenueData[-1].ValueMillions\n    $years = $revenueData.Count - 1\n\n    $cagr = Get-CAGR -BeginValue $firstRevenue -EndValue $lastRevenue -Years $years\n    if ($null -ne $cagr) {\n        Write-Output (\u0022Revenue CAGR: {0:N2}%\u0022 -f $cagr)\n    } else {\n        Write-Output \u0022Unable to calculate CAGR\u0022\n    }\n} else {\n    Write-Output \u0022Not enough data to calculate CAGR\u0022\n}"
+      "source": "Import-Module (Join-Path (Get-Location) 'modules/RuleOne/RuleOne.psd1') -Force\n\nGet-R1Securities | Format-Table -AutoSize"
     },
     {
       "id": "c1886910-1cbd-48b5-a9a6-6804caf8f884",
       "type": "markdown",
-      "source": "## Summary\n\nThis notebook demonstrates:\n- Connecting to the RuleOne SQLite database\n- Querying financial facts (revenue, earnings)\n- Visualizing trends using Plotly (rendered as standalone HTML, opened in your browser)\n- Calculating growth metrics (CAGR)\n\nTo use this notebook:\n1. First run the ETL app to fetch and store SEC data: \u0060dotnet run --project src/RuleOne.ETL 0000789019 10-K\u0060\n2. Install the [Verso Notebook](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook) extension and open this notebook with it (right-click the file \u2192 Open With... \u2192 Verso Notebook)\n3. Execute cells sequentially to analyze the data using PowerShell"
+      "source": "## Summary\n\nThis notebook demonstrates:\n- Querying financial facts (revenue, earnings) directly through `RuleOne.ETL.Database` in F#\n- Shaping data and calculating CAGR through `RuleOne.Analytics` in F#\n- Visualizing trends using Plotly (rendered as standalone HTML, opened in your browser) in PowerShell\n- Orchestrating an already-built operation (`Get-R1Securities`) through the `RuleOne` PowerShell module\n\nTo use this notebook:\n1. Build the solution so the referenced assemblies exist: `dotnet build`\n2. Fetch some data: `dotnet run --project src/RuleOne.ETL 0000789019 10-K`\n3. Install the [Verso Notebook](https://marketplace.visualstudio.com/items?itemName=Datafication.verso-notebook) extension and open this file with it\n4. Execute cells sequentially from the repository root"
     }
   ]
 }
